@@ -168,26 +168,28 @@ class TLDetector(object):
                     line_wp_idx = temp_wp_idx
                     light_idx = i
 
-        # Save images, current pose and state
-        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
-        now = datetime.datetime.now()
-        file_suffix = now.isoformat()
-        img_name = 'data-'+file_suffix+'.jpg'
-        cv2.imwrite(img_name, cv_image)
+        # Save images, current pose and state if recording
 
-        json_data = {
-            "pose": yaml.load(str(self.pose)),
-            "lights": [yaml.load(str(light)) for light in self.lights],
-            "closest_light": yaml.load(str(closest_light)) if not None else {},
-            "image_name": img_name,
-            "diff": diff,
-            "light_index": light_idx,
-            "waypoint_index": line_wp_idx
-        }
+        if self.config['recording']:
+            cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+            now = datetime.datetime.now()
+            file_suffix = now.isoformat()
+            img_name = 'data-'+file_suffix+'.jpg'
+            cv2.imwrite(img_name, cv_image)
 
-        json_file_name = 'data-'+file_suffix+'.json'
-        with open(json_file_name, 'w') as outfile:
-            json.dump(json_data, outfile)
+            json_data = {
+                "pose": yaml.load(str(self.pose)),
+                "lights": [yaml.load(str(light)) for light in self.lights],
+                "closest_light": yaml.load(str(closest_light)) if not None else {},
+                "image_name": img_name,
+                "diff": diff,
+                "light_index": light_idx,
+                "waypoint_index": line_wp_idx
+            }
+
+            json_file_name = 'data-'+file_suffix+'.json'
+            with open(json_file_name, 'w') as outfile:
+                json.dump(json_data, outfile)
 
         if closest_light:
             state = self.get_light_state(closest_light)
