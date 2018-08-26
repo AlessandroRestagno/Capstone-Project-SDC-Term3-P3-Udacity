@@ -155,6 +155,7 @@ class TLDetector(object):
 
             #TODO find the closest visible traffic light (if one exists)
             diff = len(self.base_waypoints.waypoints)
+            light_idx = -1
             for i,light in enumerate (self.lights):
                 # Get stop line waypoint index
                 line = stop_line_positions[i]
@@ -165,6 +166,7 @@ class TLDetector(object):
                     diff = d
                     closest_light = light
                     line_wp_idx = temp_wp_idx
+                    light_idx = i
 
         # Save images, current pose and state
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
@@ -177,7 +179,10 @@ class TLDetector(object):
             "pose": yaml.load(str(self.pose)),
             "lights": [yaml.load(str(light)) for light in self.lights],
             "closest_light": yaml.load(str(closest_light)) if not None else {},
-            "image_name": img_name
+            "image_name": img_name,
+            "diff": diff,
+            "light_index": light_idx,
+            "waypoint_index": line_wp_idx
         }
 
         json_file_name = 'data-'+file_suffix+'.json'
