@@ -1,0 +1,10 @@
+Team for Udacity SDC Nanodegree - Capstone Project
+Team name: LetsGetItDone
+
+
+Team member #1: Felix Reuss 		reuss.felix@gmail.com
+Team member #2: Felix Mueller		fxsmdlp@gmail.com
+Team member #3: Benedikt Naessens	benenaes@insysive.be
+Team member #4: Ilker Altay		ilkeraltay1981@gmail.com
+Team member #5: Alessandro Restagno	resta89@gmail.com
+
