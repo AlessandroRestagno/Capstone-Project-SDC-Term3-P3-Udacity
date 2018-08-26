@@ -176,11 +176,9 @@ class TLDetector(object):
         json_data = {
             "pose": yaml.load(str(self.pose)),
             "lights": [yaml.load(str(light)) for light in self.lights],
-            "closest_light": closest_light if not None else -1,
+            "closest_light": yaml.load(closest_light) if not None else {},
             "image_name": img_name
         }
-
-        print(json_data)
 
         json_file_name = 'data-'+file_suffix+'.json'
         with open(json_file_name, 'w') as outfile:
