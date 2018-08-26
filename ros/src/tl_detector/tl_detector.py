@@ -176,7 +176,7 @@ class TLDetector(object):
         json_data = {
             "pose": yaml.load(str(self.pose)),
             "lights": [yaml.load(str(light)) for light in self.lights],
-            "closest_light": yaml.load(closest_light) if not None else {},
+            "closest_light": yaml.load(str(closest_light)) if not None else {},
             "image_name": img_name
         }
 
