@@ -172,8 +172,6 @@ class TLDetector(object):
         file_suffix = now.isoformat()
         img_name = 'data-'+file_suffix+'.jpg'
         cv2.imwrite(img_name, cv_image)
-        print(str(self.pose))
-        print(str(self.lights))
 
         json_data = {
             "pose": yaml.load(str(self.pose)),
@@ -181,6 +179,8 @@ class TLDetector(object):
             "closest_light": closest_light if not None else -1,
             "image_name": img_name
         }
+
+        print(json_data)
 
         json_file_name = 'data-'+file_suffix+'.json'
         with open(json_file_name, 'w') as outfile:
