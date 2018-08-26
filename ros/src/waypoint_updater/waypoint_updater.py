@@ -30,6 +30,7 @@ LOOP_FREQ = 30 # was: 50
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
+        rospy.loginfo('WaypointUpdater Init')
 
         # TODO: Add other member variables you need below
         self.base_lane = None
