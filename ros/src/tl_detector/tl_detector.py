@@ -9,6 +9,9 @@ from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
 from scipy.spatial import KDTree
 
+import datetime
+import json
+
 import tf
 import cv2
 import yaml
@@ -20,7 +23,7 @@ class TLDetector(object):
         rospy.init_node('tl_detector')
 
         self.pose = None
-        self.waypoints = None
+        self.waypoints_2d = None
         self.camera_image = None
         self.waypoint_tree = None
         self.lights = []
@@ -58,8 +61,10 @@ class TLDetector(object):
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
-        self.waypoints = waypoints
-        self.waypoint_tree = KDTree(self.waypoints)
+        self.base_waypoints = waypoints
+        if not self.waypoints_2d:
+            self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints] #not sure about this last part
+            self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -149,7 +154,7 @@ class TLDetector(object):
             car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
 
             #TODO find the closest visible traffic light (if one exists)
-            diff = len(self.waypoints.waypoints)
+            diff = len(self.base_waypoints.waypoints)
             for i,light in enumerate (self.lights):
                 # Get stop line waypoint index
                 line = stop_line_positions[i]
@@ -160,6 +165,24 @@ class TLDetector(object):
                     diff = d
                     closest_light = light
                     line_wp_idx = temp_wp_idx
+
+        # Save images, current pose and state
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
+        now = datetime.datetime.now()
+        file_suffix = now.isoformat()
+        img_name = 'data-'+file_suffix+'.jpg'
+        cv2.imwrite(img_name, cv_image)
+
+        json_data = {
+            "lights": yaml.load(str(self.lights)),
+            "pose": yaml.load(str(self.pose)),
+            "closest_light": closest_light if not None else -1,
+            "image_name": img_name
+        }
+
+	json_file_name = 'data-'+file_suffix+'.json'
+        with open(json_file_name, 'w') as outfile:
+            json.dump(json_data, outfile)
 
         if closest_light:
             state = self.get_light_state(closest_light)
