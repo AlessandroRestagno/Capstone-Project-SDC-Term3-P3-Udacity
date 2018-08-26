@@ -172,6 +172,7 @@ class TLDetector(object):
         file_suffix = now.isoformat()
         img_name = 'data-'+file_suffix+'.jpg'
         cv2.imwrite(img_name, cv_image)
+        print(str(self.pose))
         print(str(self.lights))
 
         json_data = {
