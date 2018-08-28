@@ -24,13 +24,13 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
-LOOP_FREQ = 30 # was: 50
+LOOKAHEAD_WPS = 100 # Number of waypoints we will publish. You can change this number, was: 200
+LOOP_FREQ = 2 # was: 50
 
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
-        rospy.loginfo('WaypointUpdater Init')
+        rospy.loginfo('init')
 
         # TODO: Add other member variables you need below
         self.base_lane = None
@@ -39,18 +39,22 @@ class WaypointUpdater(object):
         self.waypoints_2d = None
         self.waypoint_tree = None
 
+        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
-        # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
+        # Final waypoints publisher
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
         self.loop()
 
     def loop(self):
+        rospy.loginfo('loop')
+        
         rate = rospy.Rate(LOOP_FREQ)
         while not rospy.is_shutdown():
+            rospy.loginfo('cycle')
             if self.pose and self.base_lane and self.waypoint_tree:
                 # Get closest waypoint
                 closest_waypoint_idx = self.get_closest_waypoint_idx()
@@ -84,6 +88,9 @@ class WaypointUpdater(object):
         lane = Lane()
         lane.header = self.base_lane.header # probably not really needed
         lane.waypoints = self.base_lane.waypoints[closest_idx:closest_idx + LOOKAHEAD_WPS]
+
+        rospy.loginfo('publish_wp %d', closest_idx)
+
         self.final_waypoints_pub.publish(lane)
 
         # final_lane = self.generate_lane()
@@ -122,10 +129,12 @@ class WaypointUpdater(object):
     #     return temp
 
     def pose_cb(self, msg):
+        # rospy.loginfo('pose_cb')
         # TODO: Implement
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
+        rospy.loginfo('WaypointUpdater waypoint_cb')
         # TODO: Implement
         self.base_lane = waypoints
 
@@ -135,6 +144,7 @@ class WaypointUpdater(object):
             self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
+        rospy.loginfo('WaypointUpdater traffic_cb')
         # TODO: Callback for /traffic_waypoint message. Implement
         self.stopline_wp_idx = msg.data
 
