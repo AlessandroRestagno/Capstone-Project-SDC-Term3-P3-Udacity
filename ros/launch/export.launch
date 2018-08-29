@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="rosbag" type="play" name="rosbag" args="-d 2 /opt/traffic_light_bag_file/traffic_light_bag_file.bag"/>
+  <node name="extract" pkg="image_view" type="image_saver" respawn="false" output="screen" cwd="ROS_HOME">
+    <remap from="image" to="image_raw"/>
+  </node>
+</launch>
