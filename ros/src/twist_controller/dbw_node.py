@@ -77,15 +77,13 @@ class DBWNode(object):
 
         self.twist = None
         self.velocity = None
-        self.current_vel = None
-        self.twist_cmd = None
-        self.current_ang_vel = None
         self.dbw_enabled = None
-        self.linear_vel = None
-        self.angular_vel = None
         self.throttle = self.steering = self.brake = 0
-        self.last_action = ''
-
+        #self.current_vel = None
+        #self.twist_cmd = None
+        #self.current_ang_vel = None
+        #self.linear_vel = None
+        #self.angular_vel = None
         self.loop()
 
     def loop(self):
