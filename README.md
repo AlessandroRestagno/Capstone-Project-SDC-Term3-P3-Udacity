@@ -8,18 +8,20 @@ The team designed an autonomous car that will be tested on the simulator and, th
 
 
 ## Waypoint Updater
-This node is implemented in the [waypoint_updater.py](/ros/src/waypoint_updater/waypoint_updater.py) file.
+This node is implemented in the [wayppoint_updater.py](/ros/src/waypoint_updater/waypoint_updater.py) file.
 
 ## Drive-By-Wire (DBW)
 This node is implemented in the [dbw_node.py](/ros/src/twist_controller/dbw_node.py) file.
-### Steering
+It's subscribed to the `current_vel`,`twist_cmd` and `dbw_enabled` topics and it publishes the `throttle_cmd`, `brake_cmd` and `steering_cmd` topics.
 
+### Steering
+Predictive Steering is implemented using the provided `YawController` class (.
 ### Throttle
 
 ### Brake
 
 ## Traffic Light Detection
-This node is implemented in the [tl_detection.py](/ros/src/tl_detection/tl_detection.py) file.
+This node is implemented in the [tl_detector.py](/ros/src/tl_detection/tl_detector.py) file.
 
 ## Setup
 
