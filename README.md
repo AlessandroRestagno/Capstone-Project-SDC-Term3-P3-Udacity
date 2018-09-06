@@ -8,6 +8,7 @@ The team designed an autonomous car that will be tested on the simulator and, th
 
 
 ## Waypoint Updater
+This node is implemented in the [waypoint_updater.py](/ros/src/waypoint_updater/waypoint_updater.py) file.
 
 ## Drive-By-Wire (DBW)
 This node is implemented in the [dbw_node.py](/ros/src/twist_controller/dbw_node.py) file.
@@ -18,7 +19,7 @@ This node is implemented in the [dbw_node.py](/ros/src/twist_controller/dbw_node
 ### Brake
 
 ## Traffic Light Detection
-
+This node is implemented in the [tl_detection.py](/ros/src/tl_detection/tl_detection.py) file.
 
 ## Setup
 
