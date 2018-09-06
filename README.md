@@ -15,8 +15,10 @@ This node is implemented in the [dbw_node.py](/ros/src/twist_controller/dbw_node
 It's subscribed to the `current_vel`,`twist_cmd` and `dbw_enabled` topics and it publishes the `throttle_cmd`, `brake_cmd` and `steering_cmd` topics.
 
 ### Steering
-Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_contoller.py)).
+Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_controller.py)). 
+
 ### Throttle
+Throttle is controlled by a linear PID by passing in the velocity error(difference between the current velocity and the proposed velocity)
 
 ### Brake
 
