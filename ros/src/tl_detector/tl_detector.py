@@ -17,7 +17,8 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 4 # Number of frames skipped in classification to ensure real time capability
+SKIP_FRAMES = 2 # Number of frames skipped in classification to ensure real time capability
+CLASSIFICATION_DIST_THRESHOLD = 150 # Distance threshold below of that, camera image will be classified
 
 class TLDetector(object):
     def __init__(self):
@@ -84,7 +85,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
 
-        rospy.loginfo('Image cb called.')
+        # rospy.loginfo('Image cb called.')
         
         if self.frame_count >= SKIP_FRAMES:
 
@@ -149,7 +150,7 @@ class TLDetector(object):
         # return self.light_classifier.get_classification(cv_image)
 
         # TO TEST IT WE CAN JUST USE
-        rospy.loginfo('State of light is %s', light.state)
+        # rospy.loginfo('Image classified. State of light is %s', light.state)
         return light.state
 
     def process_traffic_lights(self):
@@ -164,13 +165,15 @@ class TLDetector(object):
         closest_light = None
         line_wp_idx = None
 
-        rospy.loginfo('Process image.')
+        # rospy.loginfo('Process image.')
         
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
-
+            #rospy.loginfo('Car is next to wp: %d', car_wp_idx)
+            
+            
             # find the closest visible traffic light (if one exists)
             diff = len(self.base_waypoints.waypoints)
             light_idx = -1
@@ -186,7 +189,11 @@ class TLDetector(object):
                     line_wp_idx = temp_wp_idx
                     light_idx = i
 
-            # rospy.loginfo('Closest light has index %d', light_idx)
+            # DEBUG
+            #rospy.loginfo('Closest light has state: %d', closest_light.state)
+            #rospy.loginfo('Index diff car to next light: %d', diff)
+            #rospy.loginfo('Closest light has index: %d', light_idx)
+            #rospy.loginfo('Len base waypoints: %d', len(self.base_waypoints.waypoints))
 
         # Save images, current pose and state if recording
         if self.config['recording']:
@@ -210,7 +217,7 @@ class TLDetector(object):
             with open(json_file_name, 'w') as outfile:
                 json.dump(json_data, outfile)
 
-        if closest_light:
+        if closest_light and diff <= CLASSIFICATION_DIST_THRESHOLD:
             state = self.get_light_state(closest_light)
             return line_wp_idx, state
 
