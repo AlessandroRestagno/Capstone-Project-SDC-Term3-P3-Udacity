@@ -64,9 +64,8 @@ class TLDetector(object):
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints
         if not self.waypoints_2d:
-            self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints] #not sure about this last part
+            self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints]
             self.waypoint_tree = KDTree(self.waypoints_2d)
-            # rospy.loginfo(print(self.waypoint_tree.data)) not working
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -166,7 +165,7 @@ class TLDetector(object):
                 line = stop_line_positions[i]
                 temp_wp_idx = self.get_closest_waypoint(line[0], line[1])
                 # Find closest stop line waypoint index
-                d = (temp_wp_idx - car_wp_idx) % len(self.lights)           
+                d = (temp_wp_idx - car_wp_idx) % len(self.base_waypoints.waypoints)           
                 if d >= 0 and d < diff:
                     diff = d
                     closest_light = light
