@@ -17,7 +17,7 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 3 # Number of frames skipped in classification to ensure real time capability
+SKIP_FRAMES = 4 # Number of frames skipped in classification to ensure real time capability
 
 class TLDetector(object):
     def __init__(self):
@@ -52,7 +52,7 @@ class TLDetector(object):
         self.light_classifier = TLClassifier()
         self.listener = tf.TransformListener()
 
-        self.classification_counter = 0
+        self.frame_count = 0
 
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
@@ -84,6 +84,8 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
 
+        rospy.loginfo('Image cb called.')
+        
         if self.frame_count >= SKIP_FRAMES:
 
             self.frame_count = 0
@@ -162,7 +164,8 @@ class TLDetector(object):
         closest_light = None
         line_wp_idx = None
 
-
+        rospy.loginfo('Process image.')
+        
         # List of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
