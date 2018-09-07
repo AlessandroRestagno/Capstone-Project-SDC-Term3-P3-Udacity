@@ -21,6 +21,12 @@ Predictive Steering is implemented using the provided `YawController` class ([ya
 Throttle is controlled by a linear PID by passing in the velocity error(difference between the current velocity and the proposed velocity)
 
 ### Brake
+When the PID controller returns a negative value for throttle, it means the car needs to decelerate. The amount of deceleration needed is calculated in these two lines of code:
+```
+decel = max(vel_error, self.decel_limit)
+brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
+```
+`brake` is the amount of torque that is applied to the brake system to decrease the car's speed.
 
 ## Traffic Light Detection
 This node is implemented in the [tl_detector.py](/ros/src/tl_detection/tl_detector.py) file.
