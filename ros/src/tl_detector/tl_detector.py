@@ -29,7 +29,7 @@ class TLDetector(object):
         self.lights = []
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-#        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
@@ -66,6 +66,7 @@ class TLDetector(object):
         if not self.waypoints_2d:
             self.waypoints_2d = [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in waypoints.waypoints] #not sure about this last part
             self.waypoint_tree = KDTree(self.waypoints_2d)
+            # rospy.loginfo(print(self.waypoint_tree.data)) not working
 
     def traffic_cb(self, msg):
         self.lights = msg.lights
@@ -96,8 +97,10 @@ class TLDetector(object):
             light_wp = light_wp if state == TrafficLight.RED else -1
             self.last_wp = light_wp
             self.upcoming_red_light_pub.publish(Int32(light_wp))
+            # rospy.loginfo('Next red light wp published')
         else:
             self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+            # rospy.loginfo('Next red light wp published')
         self.state_count += 1
 
     def get_closest_waypoint(self, x, y):
@@ -134,6 +137,7 @@ class TLDetector(object):
         # return self.light_classifier.get_classification(cv_image)
 
         # TO TEST IT WE CAN JUST USE
+        rospy.loginfo('State of light is %s', light.state)
         return light.state
 
     def process_traffic_lights(self):
@@ -162,16 +166,16 @@ class TLDetector(object):
                 line = stop_line_positions[i]
                 temp_wp_idx = self.get_closest_waypoint(line[0], line[1])
                 # Find closest stop line waypoint index
-                d = (temp_wp_idx - car_wp_idx) % len(self.lights)
-                # rospy.loginfo('Length of lights list %d', len(self.lights))
+                d = (temp_wp_idx - car_wp_idx) % len(self.lights)           
                 if d >= 0 and d < diff:
                     diff = d
                     closest_light = light
                     line_wp_idx = temp_wp_idx
                     light_idx = i
-
+                    
+            # rospy.loginfo('Closest light has index %d', light_idx)
+        
         # Save images, current pose and state if recording
-
         if self.config['recording']:
             cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
             now = datetime.datetime.now()
