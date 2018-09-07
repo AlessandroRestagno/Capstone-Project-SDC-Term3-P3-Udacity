@@ -25,7 +25,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 100 # Number of waypoints we will publish. You can change this number, was: 200
-LOOP_FREQ = 2 # was: 50
+LOOP_FREQ = 5 # was: 50
 MAX_DECEL = 0.5
 
 class WaypointUpdater(object):
@@ -40,7 +40,7 @@ class WaypointUpdater(object):
         self.waypoints_2d = None
         self.waypoint_tree = None
 
-        # Add subscribers for /traffic_waypoint and /obstacle_waypoint
+        # Add a subscribers for /traffic_waypoint and /obstacle_waypoint
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
@@ -52,11 +52,11 @@ class WaypointUpdater(object):
         self.loop()
 
     def loop(self):
-        rospy.loginfo('loop')
+        # rospy.loginfo('loop')
 
         rate = rospy.Rate(LOOP_FREQ)
         while not rospy.is_shutdown():
-            # rospy.logdebug('cycle')
+            # rospy.loginfo('cycle')
             if self.pose and self.base_lane and self.waypoint_tree:
                 # Get closest waypoint
                 # closest_waypoint_idx = self.get_closest_waypoint_idx()
@@ -86,7 +86,7 @@ class WaypointUpdater(object):
         return closest_idx
 
     def publish_waypoints(self):
-        rospy.logdebug('publish_wp')
+        rospy.loginfo('publish_wp')
 
         # lane = Lane()
         # lane.header = self.base_lane.header # probably not really needed
@@ -125,14 +125,18 @@ class WaypointUpdater(object):
         Returns:
           new list of decelerated waypoints
         """
+        # determine waypoint index for stopping in front of red light stopline
+        stop_idx = max(self.stopline_wp_idx - closest_idx - 2, 0)
+                
+        # if self.distance(waypoints, closest_idx, stop_idx) > 50:
+        #    return waypoints
+        
         temp = []
         for i, wp in enumerate(waypoints):
 
             p = Waypoint()
             p.pose = wp.pose
 
-            # determine waypoint index for stopping in front of red light stopline
-            stop_idx = max(self.stopline_wp_idx - closest_idx - 2, 0)
             dist = self.distance(waypoints, i, stop_idx)
             vel = math.sqrt(2 * MAX_DECEL * dist)
             if vel < 1.:
@@ -144,7 +148,7 @@ class WaypointUpdater(object):
         return temp
 
     def pose_cb(self, msg):
-        # rospy.loginfo('pose_cb')
+        rospy.logdebug('pose_cb')
         self.pose = msg
 
     def waypoints_cb(self, waypoints):
