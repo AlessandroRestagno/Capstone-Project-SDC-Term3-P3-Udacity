@@ -17,8 +17,8 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 2 # Number of frames skipped in classification to ensure real time capability
-CLASSIFICATION_DIST_THRESHOLD = 150 # Distance threshold below of that, camera image will be classified
+SKIP_FRAMES = 0 # Number of frames skipped in classification to ensure real time capability
+CLASSIFICATION_DIST_THRESHOLD = 10000 # 150 # Distance threshold below of that, camera image will be classified
 
 class TLDetector(object):
     def __init__(self):
