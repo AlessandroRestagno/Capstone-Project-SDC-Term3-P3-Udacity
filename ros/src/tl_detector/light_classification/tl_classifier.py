@@ -30,6 +30,8 @@ class TLClassifier(object):
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
         self.model_final.load_weights("/home/workspace/Capstone-Project-SDC-Term3-P3-Udacity/ros/src/tl_detector/light_classification/resnet50_5.h5")
 
+        self.graph = tf.get_default_graph()
+        
         self.labels_dict = {'green': 0, 'no': 1, 'orange': 2, 'red': 3}
         self.labels = ['green', 'no', 'orange', 'red']
 
@@ -54,29 +56,37 @@ class TLClassifier(object):
         im = image
         im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         im = im.astype(np.float64)
+        image_size = (224, 224)
+        im = cv2.resize(im, image_size, interpolation = cv2.INTER_CUBIC)
         im = res_preprocess(im)
         im = np.expand_dims(im, axis =0)
 
         # predict traffic light state
         if self.model_loaded:
-            prob = self.model_final.predict(im)
-            probs = prob[0]
-            rospy.loginfo('Probs: ', probs)
-            j = np.argmax(prob, axis=1)[0]
+            with self.graph.as_default():
+                prob = self.model_final.predict(im)
+                probs = prob[0]
+                j = np.argmax(prob, axis=1)[0]
 
-            end_time = datetime.datetime.now()
+                end_time = datetime.datetime.now()
+                time_diff = end_time - start_time
 
-            rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j],probs[j]))
-            rospy.loginfo('Duration classification: %f', end_time - start_time)
+                rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
+                rospy.loginfo('Time to run: ' + str(time_diff))
 
-            if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
-                if j == 0:
-                    return TrafficLight.GREEN
-                elif j == 1:
-                    return TrafficLight.UNKNOWN
-                elif j == 2:
-                    return TrafficLight.YELLOW
-                elif j == 3:
-                    return TrafficLight.RED
+                if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
+                    if j == 0:
+                        rospy.loginfo('returning green')
+                        return TrafficLight.GREEN
+                        
+                    elif j == 1:
+                        rospy.loginfo('returning no')
+                        return TrafficLight.UNKNOWN
+                    elif j == 2:
+                        rospy.loginfo('returning yellow')
+                        return TrafficLight.YELLOW
+                    elif j == 3:
+                        rospy.loginfo('returning red')
+                        return TrafficLight.RED
 
         return TrafficLight.UNKNOWN
