@@ -23,7 +23,7 @@ CLASSIFICATION_DIST_THRESHOLD = 10000 # 150 # Distance threshold below of that, 
 class TLDetector(object):
     def __init__(self):
         rospy.init_node('tl_detector')
-
+        self.init_finished = 0
         self.pose = None
         self.waypoints_2d = None
         self.camera_image = None
