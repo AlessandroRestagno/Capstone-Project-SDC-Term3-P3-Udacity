@@ -76,17 +76,17 @@ class TLClassifier(object):
 
                 if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
                     if j == 0:
-                        rospy.loginfo('returning green')
+                        rospy.loginfo('Get classification function - Returning green.')
                         return TrafficLight.GREEN
                         
                     elif j == 1:
-                        rospy.loginfo('returning no')
+                        rospy.loginfo('Get classification function - Returning no.')
                         return TrafficLight.UNKNOWN
                     elif j == 2:
-                        rospy.loginfo('returning yellow')
+                        rospy.loginfo('Get classification function - Returning yellow.')
                         return TrafficLight.YELLOW
                     elif j == 3:
-                        rospy.loginfo('returning red')
+                        rospy.loginfo('Get classification function - Returning red.')
                         return TrafficLight.RED
 
         return TrafficLight.UNKNOWN

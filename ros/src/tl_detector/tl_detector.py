@@ -110,7 +110,7 @@ class TLDetector(object):
                     self.upcoming_red_light_pub.publish(Int32(light_wp))
                     rospy.loginfo('State verified and now will be published.')
                     rospy.loginfo('Index waypoint: %d', light_wp)
-                    rospy.loginfo('State if light: %s' ,state)
+                    rospy.loginfo('State of light: %s' ,state)
                 else:
                     self.upcoming_red_light_pub.publish(Int32(self.last_wp))
 
