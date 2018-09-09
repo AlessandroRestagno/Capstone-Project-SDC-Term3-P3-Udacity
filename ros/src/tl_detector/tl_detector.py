@@ -17,8 +17,8 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 2 # Number of frames skipped in classification to ensure real time capability
-CLASSIFICATION_DIST_THRESHOLD = 150 # Distance threshold below of that, camera image will be classified
+SKIP_FRAMES = 0 # Number of frames skipped in classification to ensure real time capability
+CLASSIFICATION_DIST_THRESHOLD = 10000 # 150 # Distance threshold below of that, camera image will be classified
 
 class TLDetector(object):
     def __init__(self):
@@ -59,7 +59,8 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-
+    
+        self.init_finished = 1
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -86,35 +87,35 @@ class TLDetector(object):
         self.camera_image = msg
 
         # rospy.loginfo('Image cb called.')
-        
-        if self.frame_count >= SKIP_FRAMES:
+        if self.init_finished:
+            if self.frame_count >= SKIP_FRAMES:
 
-            self.frame_count = 0
+                self.frame_count = 0
 
-            light_wp, state = self.process_traffic_lights()
+                light_wp, state = self.process_traffic_lights()
 
-            '''
-            Publish upcoming red lights at camera frequency.
-            Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
-            of times till we start using it. Otherwise the previous stable state is
-            used.
-            '''
-            if self.state != state:
-                self.state_count = 0
-                self.state = state
-            elif self.state_count >= STATE_COUNT_THRESHOLD:
-                self.last_state = self.state
-                light_wp = light_wp if state == TrafficLight.RED else -1
-                self.last_wp = light_wp
-                self.upcoming_red_light_pub.publish(Int32(light_wp))
-                # rospy.loginfo('Next red light wp published')
-            else:
-                self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-                # rospy.loginfo('Next red light wp published')
+                '''
+                Publish upcoming red lights at camera frequency.
+                Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
+                of times till we start using it. Otherwise the previous stable state is
+                used.
+                '''
+                if self.state != state:
+                    self.state_count = 0
+                    self.state = state
+                elif self.state_count >= STATE_COUNT_THRESHOLD:
+                    self.last_state = self.state
+                    light_wp = light_wp if state == TrafficLight.RED else -1
+                    self.last_wp = light_wp
+                    self.upcoming_red_light_pub.publish(Int32(light_wp))
+                    # rospy.loginfo('Next red light wp published')
+                else:
+                    self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+                    # rospy.loginfo('Next red light wp published')
 
-            self.state_count += 1
+                self.state_count += 1
 
-        self.frame_count += 1
+            self.frame_count += 1
 
     def get_closest_waypoint(self, x, y):
         """Identifies the closest path waypoint to the given position
@@ -147,11 +148,11 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         # #Get classification
-        # return self.light_classifier.get_classification(cv_image)
+        return self.light_classifier.get_classification(cv_image)
 
         # TO TEST IT WE CAN JUST USE
-        # rospy.loginfo('Image classified. State of light is %s', light.state)
-        return light.state
+        #rospy.loginfo('Image classified. State of light is %s', light.state)
+        #return light.state
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
