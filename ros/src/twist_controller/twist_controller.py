@@ -13,8 +13,8 @@ class Controller(object):
         # TODO: Implement
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
 
-        kp = 0.15
-        ki = 2
+        kp = 10.
+        ki = 2.
         kd = 0.0
         mn = decel_limit #minial throttle value
         mx = max_throttle_percent #maximum throttle value
@@ -53,8 +53,8 @@ class Controller(object):
         sample_time = current_time - self.last_time
         self.last_time = current_time
 
-        acceleration = self.throttle_controller.step(vel_error, sample_time)
-        acceleration = self.vel_lpf.filt(acceleration)
+        raw_acc = self.throttle_controller.step(vel_error, sample_time)
+        acceleration = self.vel_lpf.filt(raw_acc)
 
 
         throttle = acceleration
