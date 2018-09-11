@@ -17,8 +17,8 @@ import cv2
 import yaml
 
 STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 0 # Number of frames skipped in classification to ensure real time capability
-CLASSIFICATION_DIST_THRESHOLD = 10000 # 150 # Distance threshold below of that, camera image will be classified
+SKIP_FRAMES = 4 # Number of frames skipped in classification to ensure real time capability
+CLASSIFICATION_DIST_THRESHOLD = 175 # 150 # Distance threshold below of that, camera image will be classified
 
 class TLDetector(object):
     def __init__(self):
@@ -108,9 +108,9 @@ class TLDetector(object):
                     light_wp = light_wp if state == TrafficLight.RED else -1
                     self.last_wp = light_wp
                     self.upcoming_red_light_pub.publish(Int32(light_wp))
-                    rospy.loginfo('State verified and now will be published.')
-                    rospy.loginfo('Index waypoint: %d', light_wp)
-                    rospy.loginfo('State of light: %s' ,state)
+                    #rospy.loginfo('State verified and now will be published.')
+                    #rospy.loginfo('Index waypoint: %d', light_wp)
+                    #rospy.loginfo('State of light: %s' ,state)
                 else:
                     self.upcoming_red_light_pub.publish(Int32(self.last_wp))
 
