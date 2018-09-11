@@ -44,7 +44,7 @@ class Controller(object):
         #steering = self.yaw_controller.get_steering(twist.twist.linear.x, twist.twist.angular.z, velocity.twist.linear.x)
         steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
 
-        vel_error = linear_vel - current_vel
+        vel_error = linear_vel - filt_current_vel
 
         current_time = rospy.get_time()
         sample_time = current_time - self.last_time
