@@ -41,17 +41,22 @@ class Controller(object):
             return 0., 0., 0.
         
         filt_current_vel = self.vel_lpf.filt(current_vel)
+        #rospy.loginfo('angular_vel: %f', angular_vel)
         #steering = self.yaw_controller.get_steering(twist.twist.linear.x, twist.twist.angular.z, velocity.twist.linear.x)
         steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
 
         vel_error = linear_vel - filt_current_vel
-
+        
+        #rospy.loginfo('linear_vel: %f', linear_vel)
+        #rospy.loginfo('filt_current_vel: %f', filt_current_vel)
+        #rospy.loginfo('vel_error: %f', vel_error)
         current_time = rospy.get_time()
         sample_time = current_time - self.last_time
         self.last_time = current_time
 
         acceleration = self.throttle_controller.step(vel_error, sample_time)
-
+        rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
+        
         throttle = acceleration
         brake = 0
 
