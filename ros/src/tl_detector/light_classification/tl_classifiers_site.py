@@ -18,7 +18,8 @@ import rospy
 
 CLASSIFICATION_PROB_THRESHOLD = 0.80
 
-class TLClassifier(object):
+
+class TLClassifierSite(object):
     def __init__(self):
         num_classes = 4
         base_model = VGG19(weights=None, include_top=False)
