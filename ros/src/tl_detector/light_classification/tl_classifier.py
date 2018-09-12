@@ -71,22 +71,22 @@ class TLClassifier(object):
                 end_time = datetime.datetime.now()
                 time_diff = end_time - start_time
 
-                rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
-                rospy.loginfo('Time to run: ' + str(time_diff))
+                #rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
+                #rospy.loginfo('Time to run: ' + str(time_diff))
 
                 if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
                     if j == 0:
-                        rospy.loginfo('Get classification function - Returning green.')
+                        #rospy.loginfo('Get classification function - Returning green.')
                         return TrafficLight.GREEN
                         
                     elif j == 1:
-                        rospy.loginfo('Get classification function - Returning no.')
+                        #rospy.loginfo('Get classification function - Returning no.')
                         return TrafficLight.UNKNOWN
                     elif j == 2:
-                        rospy.loginfo('Get classification function - Returning yellow.')
+                        #rospy.loginfo('Get classification function - Returning yellow.')
                         return TrafficLight.YELLOW
                     elif j == 3:
-                        rospy.loginfo('Get classification function - Returning red.')
+                        #rospy.loginfo('Get classification function - Returning red.')
                         return TrafficLight.RED
 
         return TrafficLight.UNKNOWN
