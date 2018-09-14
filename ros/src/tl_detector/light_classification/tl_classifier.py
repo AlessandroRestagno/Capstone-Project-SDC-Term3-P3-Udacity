@@ -14,6 +14,7 @@ import time
 from random import shuffle
 import tensorflow as tf
 import rospy
+import yaml
 
 CLASSIFICATION_PROB_THRESHOLD = 0.90
 
@@ -26,9 +27,16 @@ class TLClassifier(object):
         x = Dense(1024, activation="relu")(x)
         predictions = Dense(num_classes, activation="softmax")(x)
         self.model_final = Model(inputs = base_model.input, outputs = predictions)
+        
+        config_string = rospy.get_param("/traffic_light_config")
+        self.config = yaml.load(config_string)
 
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
-        self.model_final.load_weights("/home/workspace/Capstone-Project-SDC-Term3-P3-Udacity/ros/src/tl_detector/light_classification/resnet50_5.h5")
+                
+        if self.config['is_site']:
+            self.model_final.load_weights("/home/workspace/Capstone-Project-SDC-Term3-P3-Udacity/ros/src/tl_detector/light_classification/resnet50_5.h5")
+        else:
+            self.model_final.load_weights("/home/workspace/Capstone-Project-SDC-Term3-P3-Udacity/ros/src/tl_detector/light_classification/vgg19_site.h5")
 
         self.graph = tf.get_default_graph()
         
@@ -71,8 +79,8 @@ class TLClassifier(object):
                 end_time = datetime.datetime.now()
                 time_diff = end_time - start_time
 
-                #rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
-                #rospy.loginfo('Time to run: ' + str(time_diff))
+                rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
+                rospy.loginfo('Time to run: ' + str(time_diff))
 
                 if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
                     if j == 0:
