@@ -53,7 +53,98 @@ This node is implemented in the [tl_detector.py](/ros/src/tl_detection/tl_detect
 
 ![dbw](./imgs/tl-detector-ros-graph.png "")
 
+### Classifier setup
 
+We used image classification (so not object detection) to classify images that contain a red, green, yellow or no traffic light.
+
+The current setup uses Tensorflow-GPU 1.3 and Keras 2.0.8. Classic models that are available in the Keras applications library were used for transfer learning.
+
+The classifier for the simulator is a Resnet-50 network where feature extraction is applied (the last output layer is stripped off). This classifier is extended with an average pooling layer, a dense layer of 1024 nodes with RELU activation, followed by another dense layer with 4 nodes with soft-max activation. The 4 nodes are one-hot encoded outputs that decide if the input image fed to the network contains a "green light", "no light", "yellow light" or "red light". The input images are scaled down first to 224x224. Then, "Imagenet" pre-processing is applied to normalize the colour values. 
+
+The classifier for the parking lot is a VGG19 network where feature extraction is applied. This classifier is extended with an average pooling layer, a dense layer of 512 nodes with RELU activation, followed by a dropout layer with drop rate 0.2, then another dense layer of 128 nodes with RELU activation, again a dropout layer with drop rate 0.2, and finally a dense layer with 3 nodes with soft-max activation. The 3 nodes are one-hot encoded outputs that decide if the input image fed to the network contains a "green light", "no light" or "red light". The "yellow light" case is not covered. The input images are scaled down to 224x224. Then, "Imagenet" pre-processing is applied to normalize the colour values. 
+
+### Training the networks
+
+The Resnet-50 and VGG-19 networks were trained with the following parameters:
+
+- The layers that were already trained on Imagenet had their weights frozen
+- L2 regularization was applied on the weights of the dense layers that have been appended to the network with penalization 0.01 
+- An Adam optimizer was used for weight updates
+- A learning rate of 0.001 (other learning rate values didn't perform better)
+- Categorical cross entropy was used as the cost function
+- 100 epochs with early stopping after 20 epochs without validation accuracy improvement (to avoid overfitting)
+- 80/20 training/validation set split with random shuffling
+- Batch size 4 (determined experimentally - balance in between efficiency, shared memory size and overfitting reduction, see: https://arxiv.org/abs/1609.04836)
+- Random horizontal flipping of the image for the parking lot set (not for the simulator)
+- No random zooming (because some images already have the traffic light close to the edge of the image)
+- Random rotation of the image up to 3 degrees
+- Random width shift of the image of 2%
+- Random height shift of the image of 5%
+
+The details can be found in [last_layer.ipynb](/train/last_layer.ipynb)
+
+The config file [config.json](/train/config.json) describes which network is trained (the other parameters are defined in the Jupyter notebook)
+
+The initial code came from https://github.com/Gogul09/flower-recognition/blob/master/extract_features.py, but was altered, bug fixed and extended by ourselves for our application.
+
+MobileNet, InceptionV3 and XCeption were used as well, but the results were worse or similar.
+
+### Input data
+
+#### Simulator images
+
+Images were recording while driving the simulator mountain track manually. The function *process_traffic_lights()* in [tl_detector.py](/ros/src/tl_detection/tl_detector.py) was adapted so that it stores the images fed to the ROS node. For each image that is saved, also a JSON file is created containing metadata like the states of the traffic light and the distance to the stopping line of the next traffic light.
+
+The JSON files are then processed off-line in [group_files_with_light_state.ipynb](/train/group_files_with_light_state.ipynb) so that the images with no, red, yellow or green traffic lights are grouped in separate folders to be able to use the Keras ImageDataGenerator as a training/validation batch generator. It was assumed that if a stopping line was in a distance of 250 waypoints in front of the car that the traffic lights were visible inside the camera image. On the other hand, it was assumed that if a stopping line was more than 500 waypoints away from the camera image that no traffic light would be visible inside the camera image. Any image recorded in between 250 and 500 waypoints away from a stopping line was discarded, as it is uncertain if the traffic light is visible and if the colour of the traffic light is visible after downscaling.
+
+| Images with:                   | # of images |
+| ------------------------------ | ----------- |
+| Green traffic lights           | 645         |
+| No traffic lights              | 897         |
+| Yellow (orange) traffic lights | 194         |
+| Red traffic lights             | 846         |
+
+#### Parking lot images
+
+Seven sets of images were used:
+
+- The images provided by the ROS bag file from Udacity
+- 6 sets of images from MPEG recordings from other team runs:
+  - https://www.youtube.com/watch?v=V8U5_2SFdJs
+  - https://www.youtube.com/watch?v=1TjhlsXzrqU
+  - https://www.youtube.com/watch?v=fGNzEqoeZtY
+  - https://vimeo.com/241961307
+  - https://www.youtube.com/watch?v=EDtal9m3cT0
+  - https://www.youtube.com/watch?v=thgOUyZodPs
+  - The notebook [convert_mpeg_to_jpeg.ipynb](/train/convert_mpeg_to_jpeg.ipynb) was used to extract JPEG files and scale them up to 800x600
+
+The images were manually grouped in separate subfolders (to prepare them for the Keras ImageDataGenerator)
+
+The notebook [prune_files.ipynb](/train/prune_files.ipynb) was then used to balance out the data set so that the number of images with green, red and no traffic light were more or less the same.
+
+| Images with:         | \#  of images |
+| -------------------- | ------------- |
+| Green traffic lights | 1035          |
+| No traffic lights    | 875           |
+| Red traffic lights   | 904           |
+
+### Online traffic light classification
+
+The traffic light classifiers are implemented in [tl_classifier.py](/ros/src/tl_detection/light_classifier/tl_classifier.py) for the simulator and [tl_classifier_site.py](/ros/src/tl_detection/light_classifier/tl_classifier_site.py) for the parking lot.
+
+The classifier for the simulator performs well, so that we can use a probability threshold of 0.9 to decide if the network's prediction is reliable or not.
+
+The classifier for the site / parking lot performs not so well for green light detection (10% miss-classification on a test set without any probability thresholding),  so a probability threshold of 0.8 is used for this classifier and even no threshold at all in case of a predicted green light.
+
+### Other techniques
+
+First off, a similar approach (transfer learning) was tried out using pre-trained models from Tensorflow-Hub. This was implemented in [retrain.ipynb](/train/retrain.ipynb). Unfortunately, we found out that the models trained with Tensorflow 1.5 are not backward compatible, so they could not be used in Tensorflow 1.3
+
+Also, a lot of project teams are using object detection. We decided to go for image classification, because:
+
+- It's easier to automatically annotate/label the images. Otherwise, bounding boxes around traffic lights had to be drawn. In the meanwhile, we found out that a tool like Vatic (https://github.com/cvondrick/vatic) could help a lot, because bounding boxes could be interpolated just using a couple of reference images.
+- Image classification is a lot faster than object detection. We don't have to skip any images, because inference is happening at 16 Hz on the workspace. We assume that the GPU in Carla is performing a lot better, so even if images come in at a higher frequency than in the simulator, this won't cause problems.
+- Well ... it's not really a challenge to mimic what other project teams do :)
 
 ## Setup
 
@@ -73,6 +164,7 @@ Please use **one** of the two installation options, either native **or** docker 
   * [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) if you have Ubuntu 16.04.
   * [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu) if you have Ubuntu 14.04.
 * [Dataspeed DBW](https://bitbucket.org/DataspeedInc/dbw_mkz_ros)
+
   * Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
 * Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases).
 

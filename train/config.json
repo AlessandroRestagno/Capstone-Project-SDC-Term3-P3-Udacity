@@ -1,9 +1,9 @@
 {
-  "model"           : "resnet50",
+  "model"           : "vgg19",
   "weights"         : "imagenet",
   "include_top"     : false,
-
   "train_path"      : "dataset/train",
+
   "test_path"       : "dataset/test",
   "features_path"   : "output/traffic_lights/resnet50/features.h5",
   "labels_path"     : "output/traffic_lights/resnet50/labels.h5",
