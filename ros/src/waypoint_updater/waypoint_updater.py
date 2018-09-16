@@ -3,6 +3,7 @@
 import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 from scipy.spatial import KDTree
 from std_msgs.msg import Int32
@@ -25,9 +26,9 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 35 #20 # 100 # Number of waypoints we will publish. You can change this number, was: 200
-LOOP_FREQ = 5 #2 # 5 # was: 50
-MAX_DECEL = 0.5
+LOOKAHEAD_WPS = 100 # 35 20 100 # Number of waypoints we will publish. You can change this number, was: 200
+LOOP_FREQ = 5 # 2 5 # was: 50
+MAX_DECEL = 1.0 # was: 0.5
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -37,14 +38,16 @@ class WaypointUpdater(object):
         # other member variables
         self.base_lane = None
         self.pose = None
+        self.current_vel = -1
         self.stopline_wp_idx = -1
         self.waypoints_2d = None
         self.waypoint_tree = None
         self.closest_idx = -1
-        self.curspeed = -1
+        #self.curspeed = -1
 
         # Add a subscribers for /traffic_waypoint and /obstacle_waypoint
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         # rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
@@ -147,6 +150,21 @@ class WaypointUpdater(object):
         # if self.distance(waypoints, closest_idx, stop_idx) > 50:
         #    return waypoints
         
+        # vstart = self.get_waypoint_velocity(waypoints[0])
+        vstart = self.current_vel
+        D = vstart / (2 * math.pi * MAX_DECEL)
+
+        # calcalte the required distance to slowing down based on current speed
+        brakedist = math.pi * math.pi * D
+        distcur = self.distance(waypoints, 0, stop_idx)
+
+        rospy.loginfo("WPU brakedist=%d curdist=%d v=%d D=%d", brakedist, distcur, vstart, D)
+        
+        # if we aren't within slow down distance, return the original waypoints
+        if distcur >= brakedist:
+            rospy.loginfo("WPU no decel") # %d / %d   v=%d", brakedist, distcur, vstart)
+            return waypoints
+        
         temp = []
         for i, wp in enumerate(waypoints):
 
@@ -154,21 +172,24 @@ class WaypointUpdater(object):
             p.pose = wp.pose
 
             dist = self.distance(waypoints, i, stop_idx)
-            vel = math.sqrt(2 * MAX_DECEL * dist)
+            #vel = math.sqrt(2 * MAX_DECEL * dist)
+            vel = 0.5 * self.get_waypoint_velocity(wp) * (1 - math.cos( dist/math.pi / D))
+
             if vel < 1.:
                 vel = 0
-
-            p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
+            
+#            p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
+            p.twist.twist.linear.x = vel
             temp.append(p)
             
-            if i == 0:
-                self.curspeed = p.twist.twist.linear.x
-
         return temp
 
     def pose_cb(self, msg):
         # rospy.logdebug('pose_cb')
         self.pose = msg
+
+    def velocity_cb(self, msg):
+        self.current_vel = msg.twist.linear.x
 
     def waypoints_cb(self, waypoints):
         # rospy.loginfo('WaypointUpdater waypoint_cb')
@@ -184,7 +205,7 @@ class WaypointUpdater(object):
         Callback for /traffic_waypoint message.
         """
         self.stopline_wp_idx = msg.data
-        rospy.loginfo('traffic_cb nextTL: %d curIDX: %d spd: %d', self.stopline_wp_idx, self.closest_idx, self.curspeed)
+        rospy.loginfo('traffic_cb nextTL: %d curIDX: %d', self.stopline_wp_idx, self.closest_idx)
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
