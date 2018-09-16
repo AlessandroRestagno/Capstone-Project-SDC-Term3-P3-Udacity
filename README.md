@@ -15,6 +15,7 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 
 
 ## Introduction
+
 The team designed an autonomous car that will be tested on the simulator and, then, on Udacity’s real self-driving car (Carla). As introduced in the Udacity walkthrough videos, the project is organized in three parts:
 - the Waypoint Updater;
 - the Drive-By-Wire (DBW);
@@ -22,19 +23,52 @@ The team designed an autonomous car that will be tested on the simulator and, th
 
 ![overview](./imgs/final-project-ros-graph-v2.png "")
 
+
 ## Waypoint Updater
+
 This node is implemented in the [wayppoint_updater.py](/ros/src/waypoint_updater/waypoint_updater.py) file.
 
-![wayppoint_updater](./imgs/waypoint-updater-ros-graph.png "")
+![waypoint_updater](./imgs/waypoint-updater-ros-graph.png "")
+
+The Waypoint Updater nodes receives initially the original list of waypoints. It then subscribes for constant updates of the vehicle's pose and the next red traffic light position. In order to make the car drive, a list of the next 100 upcoming waypoints (subset of the original list) is published to the Waypoint Follower node at a rate of $5 Hz$.
+
+In order to achieve this, the index of the next waypoint has to be determined, using an efficient lookup featuring a KDTree data structure.
+
+When approaching a red traffic light (reason to make the car stop in front of), a shaping function is applied to the velocity of the pusblished waypoints.
+
+The following diagram shows the the origimal square root shaped deceleration function over the distance to the upcoming traffic light, as well as the new cosine based velocity function for smoother transitions and limited maximum acceleration.
+
+![deceleration](./imgs/decelerate2.png "")
+
+Based on the current vehicle speed and desired maximum acceleration the required braking distance is calculated.
+
+Target speed ($40 km/h  \cong 11 m/s$, blue curve)
+
+Original velocity profile (green curve):
+$v_{new}(x) = min \Big( v_{current}, 1.5 \cdot \sqrt{2 \cdot \text{accel}_{max} · \text{distance}} \Big)$
+
+New velocity profile with smoother begin/end (violet curve):
+$v_{new}(x) = \frac{v}{2} (1 - cos(\frac{x}{2 \pi D} ))$
+
+Deceleration over time (red curve):
+$a = \frac{dv_{new}(x)}{dx} = \frac{v}{2} \frac{1}{2 \pi D} sin(\frac{x}{2 \pi D})$
+
+Deceleration factor, based on current speed and desired maximum acceleration:
+$D = \frac{v}{2} \frac{1}{2 \pi a_{max}}$
+
+The required braking distance:
+$dist = \pi^2 D$
 
 
 ## Drive-By-Wire (DBW)
+
 This node is implemented in the [dbw_node.py](/ros/src/twist_controller/dbw_node.py) file.
 It's subscribed to the `current_vel`,`twist_cmd` and `dbw_enabled` topics and it publishes the `throttle_cmd`, `brake_cmd` and `steering_cmd` topics.
 
 ![dbw](./imgs/dbw-node-ros-graph.png "")
 
 ### Steering
+
 Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_controller.py)).
 
 ### Throttle
@@ -48,12 +82,14 @@ brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
 ```
 `brake` is the amount of torque that is applied to the brake system to decrease the car's speed.
 
+
 ## Traffic Light Detection
 This node is implemented in the [tl_detector.py](/ros/src/tl_detection/tl_detector.py) file.
 
 ![dbw](./imgs/tl-detector-ros-graph.png "")
 
 
+***
 
 ## Setup
 
