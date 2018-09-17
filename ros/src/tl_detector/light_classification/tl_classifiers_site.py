@@ -18,10 +18,9 @@ import rospy
 
 CLASSIFICATION_PROB_THRESHOLD = 0.80
 
-
 class TLClassifierSite(object):
     def __init__(self):
-        num_classes = 4
+        num_classes = 3
         base_model = VGG19(weights=None, include_top=False)
         x = base_model.output
         x = GlobalAveragePooling2D()(x)
@@ -41,11 +40,11 @@ class TLClassifierSite(object):
 
         self.graph = tf.get_default_graph()
         
-        self.labels_dict = {'green': 0, 'no': 1, 'orange': 2, 'red': 3}
-        self.labels = ['green', 'no', 'orange', 'red']
+        self.labels_dict = {'green': 0, 'no': 1, 'red': 2}
+        self.labels = ['green', 'no', 'red']
 
         self.model_loaded = 1
-        rospy.loginfo("TLC Classification model loaded.")
+        rospy.loginfo("TLC Classification model (site) loaded.")
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -61,7 +60,6 @@ class TLClassifierSite(object):
         start_time = datetime.datetime.now()
 
         # preprocessing image
-        #im = cv2.imread(image)
         im = image
         im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         im = im.astype(np.float64)
@@ -69,7 +67,7 @@ class TLClassifierSite(object):
         im = cv2.resize(im, image_size, interpolation = cv2.INTER_CUBIC)
         im = vgg19_preprocess(im)
         im = np.expand_dims(im, axis =0)
-
+        
         # predict traffic light state
         if self.model_loaded:
             with self.graph.as_default():
@@ -86,14 +84,10 @@ class TLClassifierSite(object):
                 if probs[j] > CLASSIFICATION_PROB_THRESHOLD:
                     if j == 0:
                         rospy.loginfo('Get classification function - Returning green.')
-                        return TrafficLight.GREEN
-                        
+                        return TrafficLight.GREEN                       
                     elif j == 1:
                         rospy.loginfo('Get classification function - Returning no.')
                         return TrafficLight.UNKNOWN
-                    # elif j == 2:
-                    #     rospy.loginfo('Get classification function - Returning yellow.')
-                    #     return TrafficLight.YELLOW
                     elif j == 2:
                         rospy.loginfo('Get classification function - Returning red.')
                         return TrafficLight.RED

@@ -7,6 +7,7 @@ from styx_msgs.msg import Lane
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from light_classification.tl_classifier import TLClassifier
+from light_classification.tl_classifiers_site import TLClassifierSite
 from scipy.spatial import KDTree
 
 import datetime
@@ -16,9 +17,9 @@ import tf
 import cv2
 import yaml
 
-STATE_COUNT_THRESHOLD = 3
-SKIP_FRAMES = 4 # Number of frames skipped in classification to ensure real time capability
-CLASSIFICATION_DIST_THRESHOLD = 175 # 150 # Distance threshold below of that, camera image will be classified
+STATE_COUNT_THRESHOLD = 2
+SKIP_FRAMES = 2 # number of frames skipped in classification to ensure real time capability
+CLASSIFICATION_DIST_THRESHOLD = 175 # distance threshold below of that, camera image will be classified
 
 class TLDetector(object):
     def __init__(self):
@@ -50,7 +51,13 @@ class TLDetector(object):
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
 
         self.bridge = CvBridge()
-        self.light_classifier = TLClassifier()
+        
+        if self.config['is_site']:
+            print('Test')
+            self.light_classifier = TLClassifierSite()
+        else:
+            self.light_classifier = TLClassifier()
+                
         self.listener = tf.TransformListener()
 
         self.frame_count = 0
@@ -86,7 +93,7 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
 
-        # rospy.loginfo('Image cb called.')
+        #rospy.loginfo('Image cb called.')
         if self.init_finished:
             if self.frame_count >= SKIP_FRAMES:
 
@@ -128,7 +135,6 @@ class TLDetector(object):
             int: index of the closest waypoint in self.waypoints
 
         """
-        #TODO implement
         closest_idx = self.waypoint_tree.query([x, y], 1)[1]
         return closest_idx
 
@@ -148,10 +154,10 @@ class TLDetector(object):
 
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-        # #Get classification
+        # get classification
         return self.light_classifier.get_classification(cv_image)
 
-        # TO TEST IT WE CAN JUST USE
+        # for testing reasons you can use ground truth data
         #rospy.loginfo('Image classified. State of light is %s', light.state)
         #return light.state
 
@@ -169,7 +175,7 @@ class TLDetector(object):
 
         # rospy.loginfo('Process image.')
         
-        # List of positions that correspond to the line to stop in front of for a given intersection
+        # list of positions that correspond to the line to stop in front of for a given intersection
         stop_line_positions = self.config['stop_line_positions']
         if(self.pose):
             car_wp_idx = self.get_closest_waypoint(self.pose.pose.position.x, self.pose.pose.position.y)
@@ -180,10 +186,10 @@ class TLDetector(object):
             diff = len(self.base_waypoints.waypoints)
             light_idx = -1
             for i,light in enumerate (self.lights):
-                # Get stop line waypoint index
+                # get stop line waypoint index
                 line = stop_line_positions[i]
                 temp_wp_idx = self.get_closest_waypoint(line[0], line[1])
-                # Find closest stop line waypoint index
+                # find closest stop line waypoint index
                 d = (temp_wp_idx - car_wp_idx) % len(self.base_waypoints.waypoints)
                 if d >= 0 and d < diff:
                     diff = d
@@ -191,13 +197,13 @@ class TLDetector(object):
                     line_wp_idx = temp_wp_idx
                     light_idx = i
 
-            # DEBUG
+            # debug output
             #rospy.loginfo('Closest light has state: %d', closest_light.state)
             #rospy.loginfo('Index diff car to next light: %d', diff)
             #rospy.loginfo('Closest light has index: %d', light_idx)
             #rospy.loginfo('Len base waypoints: %d', len(self.base_waypoints.waypoints))
 
-        # Save images, current pose and state if recording
+        # save images, current pose and state if recording
         if self.config['recording']:
             cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
             now = datetime.datetime.now()
@@ -224,7 +230,6 @@ class TLDetector(object):
             return line_wp_idx, state
 
         return -1, TrafficLight.UNKNOWN
-
 
 if __name__ == '__main__':
     try:

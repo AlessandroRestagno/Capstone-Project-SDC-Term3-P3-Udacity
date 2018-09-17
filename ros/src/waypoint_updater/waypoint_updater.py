@@ -26,14 +26,14 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 100 # 35 20 100 # Number of waypoints we will publish. You can change this number, was: 200
-LOOP_FREQ = 5 # 2 5 # was: 50
-MAX_DECEL = 1.0 # was: 0.5
+LOOKAHEAD_WPS = 100 # Number of waypoints we will publish. You can change this number, was: 200
+LOOP_FREQ = 5
+MAX_DECEL = 1.0
 
 class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
-        rospy.loginfo('init')
+        rospy.loginfo('Init waypoint updater node.')
 
         # other member variables
         self.base_lane = None
@@ -45,27 +45,25 @@ class WaypointUpdater(object):
         self.closest_idx = -1
         #self.curspeed = -1
 
-        # Add a subscribers for /traffic_waypoint and /obstacle_waypoint
+        # subscribers for /traffic_waypoint and /obstacle_waypoint
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/current_velocity', TwistStamped, self.velocity_cb, queue_size = 1)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
         # rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
-        # Final waypoints publisher
+        # final waypoints publisher
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
         self.loop()
 
     def loop(self):
-        # rospy.loginfo('loop')
+        # rospy.loginfo('Waypoint planner - loop function called.')
 
         rate = rospy.Rate(LOOP_FREQ)
         while not rospy.is_shutdown():
             # rospy.loginfo('cycle')
             if self.pose and self.base_lane and self.waypoint_tree:
-                # Get closest waypoint
-                # closest_waypoint_idx = self.get_closest_waypoint_idx()
                 self.publish_waypoints()
             rate.sleep()
 
@@ -75,11 +73,11 @@ class WaypointUpdater(object):
 
         closest_idx = self.waypoint_tree.query([x, y], 1)[1]
 
-        # Check if closest is ahead or behind vehicle
+        # check if closest is ahead or behind vehicle
         closest_coord = self.waypoints_2d[closest_idx]
         prev_coord = self.waypoints_2d[closest_idx - 1]
 
-        # Equation for hyperplane through closest_coord
+        # equation for hyperplane through closest_coord
         cl_vect = np.array(closest_coord)
         prev_vect = np.array(prev_coord)
         pos_vect = np.array([x, y])
@@ -92,12 +90,7 @@ class WaypointUpdater(object):
         return closest_idx
 
     def publish_waypoints(self):
-        # rospy.loginfo('publish_wp')
-
-        # lane = Lane()
-        # lane.header = self.base_lane.header # probably not really needed
-        # lane.waypoints = self.base_lane.waypoints[closest_idx:closest_idx + LOOKAHEAD_WPS]
-        # self.final_waypoints_pub.publish(lane)
+        # rospy.loginfo('Waypoint planner - publish_wp function called.')
         
         #start_time = datetime.datetime.now()
         
@@ -105,9 +98,6 @@ class WaypointUpdater(object):
         
         #end_time = datetime.datetime.now()
         #time_diff = end_time - start_time
-
-        # rospy.loginfo('Best guess: %s with certainty %f' % (self.labels[j], probs[j]))
-        #rospy.loginfo('Time to run: ' + str(time_diff))
         
         self.final_waypoints_pub.publish(final_lane)
 
@@ -118,8 +108,7 @@ class WaypointUpdater(object):
         closest_idx = self.get_closest_waypoint_idx()
         self.closest_idx = closest_idx
 
-        # rospy.logdebug('closest_idx %d', closest_idx)
-        # rospy.loginfo('closest_idx %d', closest_idx)
+        # rospy.loginfo('Closest_idx: %d', closest_idx)
 
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints = self.base_lane.waypoints[(closest_idx + 4) : (farthest_idx + 4)] # slicing
@@ -154,11 +143,11 @@ class WaypointUpdater(object):
         vstart = self.current_vel
         D = vstart / (2 * math.pi * MAX_DECEL)
 
-        # calcalte the required distance to slowing down based on current speed
+        # calculate the required distance to slowe down based on current speed
         brakedist = math.pi * math.pi * D
         distcur = self.distance(waypoints, 0, stop_idx)
 
-        rospy.loginfo("WPU brakedist=%d curdist=%d v=%d D=%d", brakedist, distcur, vstart, D)
+        rospy.loginfo("WPU brakedist= %d curdist= %d v= %d D= %d", brakedist, distcur, vstart, D)
         
         # if we aren't within slow down distance, return the original waypoints
         if distcur >= brakedist:
@@ -208,7 +197,7 @@ class WaypointUpdater(object):
         rospy.loginfo('traffic_cb nextTL: %d curIDX: %d', self.stopline_wp_idx, self.closest_idx)
 
     def obstacle_cb(self, msg):
-        # TODO: Callback for /obstacle_waypoint message. We will implement it later
+        # not implemented
         pass
 
     def get_waypoint_velocity(self, waypoint):

@@ -28,7 +28,7 @@ class TLClassifier(object):
         self.model_final = Model(inputs = base_model.input, outputs = predictions)
 
         sess = tf.Session(config=tf.ConfigProto(log_device_placement=True))
-        # self.model_final.load_weights("/home/workspace/Capstone-Project-SDC-Term3-P3-Udacity/ros/src/tl_detector/light_classification/resnet50_5.h5")
+
         cwd = os.path.dirname(os.path.realpath(__file__))
         rospy.loginfo('TLC cwd %s', cwd)
         self.model_final.load_weights(cwd + '/resnet50_5.h5')
@@ -39,7 +39,7 @@ class TLClassifier(object):
         self.labels = ['green', 'no', 'orange', 'red']
 
         self.model_loaded = 1
-        rospy.loginfo("TLC Classification model loaded.")
+        rospy.loginfo("TLC Classification model (sim) loaded.")
 
     def get_classification(self, image):
         """Determines the color of the traffic light in the image
@@ -55,7 +55,6 @@ class TLClassifier(object):
         start_time = datetime.datetime.now()
 
         # preprocessing image
-        #im = cv2.imread(image)
         im = image
         im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         im = im.astype(np.float64)
