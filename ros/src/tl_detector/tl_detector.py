@@ -16,10 +16,47 @@ import json
 import tf
 import cv2
 import yaml
+import os
 
 STATE_COUNT_THRESHOLD = 2
 SKIP_FRAMES = 2 # number of frames skipped in classification to ensure real time capability
 CLASSIFICATION_DIST_THRESHOLD = 175 # distance threshold below of that, camera image will be classified
+
+
+def join_files(origFileName, newFileName, noOfChunks):
+    dataList = []
+
+    j = 0
+    for i in range(0, noOfChunks, 1):
+        j += 1
+        chunkName = "%s-chunk-%s-Of-%s" % (origFileName, j, noOfChunks)
+        f = open(chunkName, 'rb')
+        dataList.append(f.read())
+        f.close()
+
+    j = 0
+    for i in range(0, noOfChunks, 1):
+        j += 1
+        chunkName = "%s-chunk-%s-Of-%s" % (origFileName, j, noOfChunks)
+        # Deleting the chunck file.
+        os.remove(chunkName)
+
+    f2 = open(newFileName, 'wb')
+    for data in dataList:
+        f2.write(data)
+    f2.close()
+
+
+def join_model_files():
+    cwd = os.path.dirname(os.path.realpath(__file__))
+    resnet_model = os.path.join(cwd, 'light_classification', 'resnet50_5.h5')
+    vgg19_model = os.path.join(cwd, 'light_classification', 'vgg19_site.h5')
+
+    if not os.path.isfile(resnet_model):
+        join_files(origFileName=resnet_model, newFileName=resnet_model, noOfChunks=3)
+    if not os.path.isfile(vgg19_model):
+        join_files(origFileName=vgg19_model, newFileName=vgg19_model, noOfChunks=2)
+
 
 class TLDetector(object):
     def __init__(self):
@@ -30,6 +67,8 @@ class TLDetector(object):
         self.camera_image = None
         self.waypoint_tree = None
         self.lights = []
+
+        join_model_files()
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
