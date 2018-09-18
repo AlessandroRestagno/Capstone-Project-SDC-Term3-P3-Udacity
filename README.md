@@ -72,15 +72,24 @@ It's subscribed to the `current_vel`,`twist_cmd` and `dbw_enabled` topics and it
 Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_controller.py)).
 
 ### Throttle
-Throttle is controlled by a linear PID by passing in the velocity error(difference between the current velocity and the proposed velocity)
+Throttle is controlled by a speed control algorithm ([An Intelligent Vehicle Based on an Improved PID Speed Control Algorithm for
+Driving Trend Graphs ](http://ijssst.info/Vol-17/No-30/paper19.pdf)  passing in the square difference between the proposed velocity (`linear_vel`) and the current velocity (`current_vel`) divided by 2 times the distance of 30 meters.
+The positive value that returns this algorithm are the throttle values of the car. We smooth the final values of throttle implementing these lines of code:
+```
+if (throttle > 0.05) and (throttle - self.last_throttle) > 0.005:
+  throttle = max((self.last_throttle + 0.0025), 0.005)
+if throttle > 0.05 and (throttle - self.last_throttle) < -0.05:
+  throttle = self.last_throttle - 0.05
+```
 
 ### Brake
-When the PID controller returns a negative value for throttle, it means the car needs to decelerate. The amount of deceleration needed is calculated in these two lines of code:
+When the algorithm returns a negative value for throttle, it means the car needs to decelerate. The amount of deceleration needed is calculated in these two lines of code:
 ```
-decel = max(vel_error, self.decel_limit)
+decel = max((smooth_acc * 5), self.decel_limit)
 brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
 ```
 `brake` is the amount of torque that is applied to the brake system to decrease the car's speed.
+As we did for throttle, we smooth the final values of brake to increment the comfort and avoid excessive variation of acceleration.
 
 
 ## Traffic Light Detection
