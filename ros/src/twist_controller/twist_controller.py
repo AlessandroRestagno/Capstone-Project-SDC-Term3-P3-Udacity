@@ -64,7 +64,8 @@ class Controller(object):
         if smooth_acc > 0:
             smooth_acc = smooth_acc + .20
         """    
-        #rospy.loginfo('smooth acceleration: %f', smooth_acc)
+        rospy.loginfo('smooth acceleration: %f', smooth_acc)
+        rospy.loginfo('linear_vel: %f', linear_vel)
         #rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
         """
         if linear_vel == 0.:
@@ -84,9 +85,9 @@ class Controller(object):
             throttle = max_throttle_percent
         
         #smoothing throttle acceleration and deceleration    
-        if (throttle > 0.05) and (throttle - self.last_throttle) > 0.005:
+        if (throttle > 0.025) and (throttle - self.last_throttle) > 0.005:
             throttle = max((self.last_throttle + 0.0025), 0.005)
-        if throttle > 0.05 and (throttle - self.last_throttle) < -0.05:
+        if throttle > 0.025 and (throttle - self.last_throttle) < -0.05:
             throttle = self.last_throttle - 0.05
         
         self.last_throttle = throttle
@@ -96,7 +97,7 @@ class Controller(object):
         if linear_vel == 0. and filt_current_vel < 0.1:
             throttle = 0.
             brake = 700. # N*m - to hold the car in place if we are stopped at a light. Acceleration - 1m/s^2
-        elif throttle < 0.05 and vel_error < 0.:
+        elif throttle < 0.025 and vel_error < 0.:
             throttle = 0.
             #decel = max(vel_error, self.decel_limit)
             decel = max((smooth_acc * 5), self.decel_limit)
@@ -107,8 +108,8 @@ class Controller(object):
         
         if (brake - self.last_brake) < -100:
             brake = self.last_brake - 100
-        rospy.loginfo('brake: %f', brake)
-        rospy.loginfo('trottle: %f', throttle)
+        #rospy.loginfo('brake: %f', brake)
+        #rospy.loginfo('trottle: %f', throttle)
         self.last_brake = brake
         
         return throttle, brake, steering
