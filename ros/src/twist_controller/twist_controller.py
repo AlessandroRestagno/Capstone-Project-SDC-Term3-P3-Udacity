@@ -31,8 +31,10 @@ class Controller(object):
         self.wheel_radius = wheel_radius
 
         self.last_time = rospy.get_time()
+        self.last_throttle = 0
+        self.last_brake = 100
 
-    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled):
+    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent):
         # return throttle, brake, steer
         if not dbw_enabled:
             self.throttle_controller.reset()
@@ -56,31 +58,57 @@ class Controller(object):
         acceleration = self.throttle_controller.step(vel_error, sample_time)
         
         # smooth acceleration: http://ijssst.info/Vol-17/No-30/paper19.pdf
-        smooth_acc = (linear_vel * linear_vel + filt_current_vel * filt_current_vel) / (2 * 30)
+        smooth_acc = ((linear_vel * linear_vel) - (filt_current_vel * filt_current_vel)) / (2 * 30)
+        
         """
         if smooth_acc > 0:
             smooth_acc = smooth_acc + .20
         """    
-        rospy.loginfo('smooth acceleration: %f', smooth_acc)
-        rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
-        
+        #rospy.loginfo('smooth acceleration: %f', smooth_acc)
+        #rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
+        """
         if linear_vel == 0.:
-            throttle = smooth_acc * 0.5
+            throttle = smooth_acc
         else:
             if (current_vel / linear_vel) < 0.8:
-                throttle = smooth_acc * 0.5
+                throttle = smooth_acc * 0.2 + filt_current_vel * 0.09
+                self.throttle_controller.reset()
             else:
                 throttle = acceleration
+        """
+        if smooth_acc >= 0:
+            throttle = smooth_acc
+        else:
+            throttle = 0
+        if throttle > max_throttle_percent:
+            throttle = max_throttle_percent
+        
+        #smoothing throttle acceleration and deceleration    
+        if (throttle > 0.05) and (throttle - self.last_throttle) > 0.005:
+            throttle = max((self.last_throttle + 0.0025), 0.005)
+        if throttle > 0.05 and (throttle - self.last_throttle) < -0.05:
+            throttle = self.last_throttle - 0.05
+        
+        self.last_throttle = throttle
         
         brake = 0.
 
         if linear_vel == 0. and filt_current_vel < 0.1:
             throttle = 0.
             brake = 700. # N*m - to hold the car in place if we are stopped at a light. Acceleration - 1m/s^2
-        elif throttle <= 0.05 and vel_error < 0.:
+        elif throttle < 0.05 and vel_error < 0.:
             throttle = 0.
             #decel = max(vel_error, self.decel_limit)
-            decel = max((smooth_acc * 10), self.decel_limit)
+            decel = max((smooth_acc * 5), self.decel_limit)
             brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
-
+            #smoothing brake
+            if brake > 100 and (brake - self.last_brake) > 20:
+                brake = max((self.last_brake + 20), 100)
+        
+        if (brake - self.last_brake) < -100:
+            brake = self.last_brake - 100
+        rospy.loginfo('brake: %f', brake)
+        rospy.loginfo('trottle: %f', throttle)
+        self.last_brake = brake
+        
         return throttle, brake, steering
