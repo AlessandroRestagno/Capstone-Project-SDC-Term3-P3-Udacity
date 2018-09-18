@@ -12,7 +12,7 @@ class Controller(object):
     def __init__(self, vehicle_mass, fuel_capacity, brake_deadband, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, max_lat_accel, max_steer_angle, max_throttle_percent):
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
 
-        kp = 1.
+        kp = 0.5
         ki = 0.0001
         kd = 0.15
         mn = decel_limit #minial throttle value
@@ -54,17 +54,33 @@ class Controller(object):
         self.last_time = current_time
 
         acceleration = self.throttle_controller.step(vel_error, sample_time)
-        #rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
         
-        throttle = acceleration
+        # smooth acceleration: http://ijssst.info/Vol-17/No-30/paper19.pdf
+        smooth_acc = (linear_vel * linear_vel + filt_current_vel * filt_current_vel) / (2 * 30)
+        """
+        if smooth_acc > 0:
+            smooth_acc = smooth_acc + .20
+        """    
+        rospy.loginfo('smooth acceleration: %f', smooth_acc)
+        rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
+        
+        if linear_vel == 0.:
+            throttle = smooth_acc * 0.5
+        else:
+            if (current_vel / linear_vel) < 0.8:
+                throttle = smooth_acc * 0.5
+            else:
+                throttle = acceleration
+        
         brake = 0.
 
         if linear_vel == 0. and filt_current_vel < 0.1:
             throttle = 0.
             brake = 700. # N*m - to hold the car in place if we are stopped at a light. Acceleration - 1m/s^2
-        elif acceleration <= 0.05 and vel_error < 0.:
+        elif throttle <= 0.05 and vel_error < 0.:
             throttle = 0.
-            decel = max(vel_error, self.decel_limit)
+            #decel = max(vel_error, self.decel_limit)
+            decel = max((smooth_acc * 10), self.decel_limit)
             brake = abs(decel) * self.vehicle_mass * self.wheel_radius # Torque N*m
 
         return throttle, brake, steering
