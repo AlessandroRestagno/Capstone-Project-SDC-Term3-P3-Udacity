@@ -59,28 +59,17 @@ class Controller(object):
         
         # smooth acceleration: http://ijssst.info/Vol-17/No-30/paper19.pdf
         smooth_acc = ((linear_vel * linear_vel) - (filt_current_vel * filt_current_vel)) / (2 * 30)
-        
-        """
-        if smooth_acc > 0:
-            smooth_acc = smooth_acc + .20
-        """    
+          
         rospy.loginfo('smooth acceleration: %f', smooth_acc)
         rospy.loginfo('linear_vel: %f', linear_vel)
         #rospy.loginfo('angular_vel: %.3f   linear_vel: %.3f   filt_current_vel: %.3f   vel_error: %.3f  acceleration: %.3f', angular_vel, linear_vel, filt_current_vel, vel_error, acceleration)
-        """
-        if linear_vel == 0.:
-            throttle = smooth_acc
-        else:
-            if (current_vel / linear_vel) < 0.8:
-                throttle = smooth_acc * 0.2 + filt_current_vel * 0.09
-                self.throttle_controller.reset()
-            else:
-                throttle = acceleration
-        """
+        
         if smooth_acc >= 0:
-            throttle = smooth_acc
+            # converting smooth_acc values to throttle acceptable values
+            throttle = smooth_acc * (max_throttle_percent - (linear_vel * 0.018)) / ((11.1111 * 11.1111)/(2*30)) + (linear_vel * 0.018)
         else:
             throttle = 0
+        
         if throttle > max_throttle_percent:
             throttle = max_throttle_percent
         
