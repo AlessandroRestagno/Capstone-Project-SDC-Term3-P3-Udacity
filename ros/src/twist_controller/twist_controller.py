@@ -95,8 +95,9 @@ class Controller(object):
             if brake > 100 and (brake - self.last_brake) > 20:
                 brake = max((self.last_brake + 20), 100)
         
-        if (brake - self.last_brake) < -100:
-            brake = self.last_brake - 100
+        if brake > 20 and (brake - self.last_brake) > 20:
+            brake = max((self.last_brake + 20), 20)
+        
         #rospy.loginfo('brake: %f', brake)
         #rospy.loginfo('trottle: %f', throttle)
         self.last_brake = brake
