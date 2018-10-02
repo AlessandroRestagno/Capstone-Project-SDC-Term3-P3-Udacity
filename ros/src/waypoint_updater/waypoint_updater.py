@@ -111,7 +111,7 @@ class WaypointUpdater(object):
         # rospy.loginfo('Closest_idx: %d', closest_idx)
 
         farthest_idx = closest_idx + LOOKAHEAD_WPS
-        base_waypoints = self.base_lane.waypoints[(closest_idx + 4) : (farthest_idx + 4)] # slicing
+        base_waypoints = self.base_lane.waypoints[(closest_idx) : (farthest_idx )] # slicing
 
         if self.stopline_wp_idx == -1 or (self.stopline_wp_idx >= farthest_idx):
             lane.waypoints = base_waypoints
