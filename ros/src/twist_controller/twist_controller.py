@@ -32,9 +32,10 @@ class Controller(object):
         self.wheel_radius = wheel_radius
 
         #self.last_time = rospy.get_time()
-        self.max_vel = 0
-        self.last_throttle = 0
-        self.last_brake = 100
+        self.max_vel = 0.001
+        self.last_throttle = 0.
+        self.last_brake = 100.
+        self.last_steering = 0.
 
     def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent):
         # return throttle, brake, steer
@@ -42,6 +43,7 @@ class Controller(object):
         if not dbw_enabled:
             return 0., 0., 0.
         
+        #rospy.loginfo('self.max_vel: %f', self.max_vel)
         target_vel = linear_vel
         if target_vel > self.max_vel:
             self.max_vel = target_vel
@@ -50,6 +52,14 @@ class Controller(object):
         #rospy.loginfo('angular_vel: %f', angular_vel)
         #steering = self.yaw_controller.get_steering(twist.twist.linear.x, twist.twist.angular.z, velocity.twist.linear.x)
         steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
+        
+        #smoothing steering control
+        if steering - self.last_steering > 0.1:
+            steering = self.last_steering + 0.1
+        elif steering - self.last_steering < 0.1:
+            steering = self.last_steering - 0.1
+        self.last_steering = steering
+        rospy.loginfo('steering: %f', steering)
 
         vel_error = linear_vel - filt_current_vel
         
