@@ -54,11 +54,14 @@ class Controller(object):
         steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
         
         #smoothing steering control
-        if steering - self.last_steering > 0.1:
+
+        if (steering - self.last_steering) > 0.1:
             steering = self.last_steering + 0.1
-        elif steering - self.last_steering < 0.1:
+        elif (steering - self.last_steering) < -0.1:
             steering = self.last_steering - 0.1
+        
         self.last_steering = steering
+
         #rospy.loginfo('steering: %f', steering)
 
         vel_error = linear_vel - filt_current_vel
