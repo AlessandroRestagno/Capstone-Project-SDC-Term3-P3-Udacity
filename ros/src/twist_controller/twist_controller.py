@@ -59,7 +59,7 @@ class Controller(object):
         elif steering - self.last_steering < 0.1:
             steering = self.last_steering - 0.1
         self.last_steering = steering
-        rospy.loginfo('steering: %f', steering)
+        #rospy.loginfo('steering: %f', steering)
 
         vel_error = linear_vel - filt_current_vel
         
