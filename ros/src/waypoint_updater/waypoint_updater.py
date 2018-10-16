@@ -55,6 +55,9 @@ class WaypointUpdater(object):
         # final waypoints publisher
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
+        # cte publisher
+        self.cte_pub = rospy.Publisher('/cte', Int32, queue_size=1)
+
         self.loop()
 
     def loop(self):
@@ -91,22 +94,25 @@ class WaypointUpdater(object):
 
     def publish_waypoints(self):
         # rospy.loginfo('Waypoint planner - publish_wp function called.')
-        
-        #start_time = datetime.datetime.now()
-        
-        final_lane = self.generate_lane()
-        
-        #end_time = datetime.datetime.now()
-        #time_diff = end_time - start_time
-        
-        self.final_waypoints_pub.publish(final_lane)
 
-    def generate_lane(self):
-        lane = Lane()
-        lane.header = self.base_lane.header # probably not really needed
+        #start_time = datetime.datetime.now()
 
         closest_idx = self.get_closest_waypoint_idx()
-        self.closest_idx = closest_idx
+        self.closest_idx = closest_idx # only needed for logging
+
+        final_lane = self.generate_lane(closest_idx)
+
+        #end_time = datetime.datetime.now()
+        #time_diff = end_time - start_time
+
+        self.final_waypoints_pub.publish(final_lane)
+
+        cte = self.cross_track_error(closest_idx)
+        self.cte_pub.publish(cte)
+
+    def generate_lane(self, closest_idx):
+        lane = Lane()
+        lane.header = self.base_lane.header # probably not really needed
 
         # rospy.loginfo('Closest_idx: %d', closest_idx)
 
@@ -135,10 +141,10 @@ class WaypointUpdater(object):
         """
         # determine waypoint index for stopping in front of red light stopline
         stop_idx = max(self.stopline_wp_idx - closest_idx - 4, 0)
-                
+
         # if self.distance(waypoints, closest_idx, stop_idx) > 50:
         #    return waypoints
-        
+
         # vstart = self.get_waypoint_velocity(waypoints[0])
         vstart = self.current_vel
         D = vstart / (2 * math.pi * MAX_DECEL)
@@ -148,12 +154,12 @@ class WaypointUpdater(object):
         distcur = self.distance(waypoints, 0, stop_idx)
 
         rospy.loginfo("WPU brakedist= %d curdist= %d v= %d D= %d", brakedist, distcur, vstart, D)
-        
+
         # if we aren't within slow down distance, return the original waypoints
         if distcur >= brakedist:
             rospy.loginfo("WPU no decel") # %d / %d   v=%d", brakedist, distcur, vstart)
             return waypoints
-        
+
         temp = []
         for i, wp in enumerate(waypoints):
 
@@ -166,12 +172,32 @@ class WaypointUpdater(object):
 
             if vel < 1.:
                 vel = 0
-            
+
 #            p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
             p.twist.twist.linear.x = vel
             temp.append(p)
-            
+
         return temp
+
+    def cross_track_error(self, closest_idx):
+        x0 = self.pose.pose.position.x
+        y0 = self.pose.pose.position.y
+
+        closest_coord_1 = self.waypoints_2d[closest_idx]
+        closest_coord_2 = self.waypoints_2d[closest_idx + 1]
+
+        point_1 = np.array(closest_coord_1)
+        point_2 = np.array(closest_coord_2)
+
+        # line that pass through the two waypoints, find the coefficients for ax + by + c = 0
+        b = 1
+        a = -(point_2[1] - point_1[1]) / (point_2[0] - point_1[0])
+        c = - point_1[1] - (point_2[1] - point_1[1]) / (point_2[0] - point_1[0]) * (-point_1[0])
+
+        # distance between the actual position and the line that passes through the next two waypoints
+        # cte = abs(a * x0 + b * y0 + c) / math.sqrt(a**2 + b**2)
+        cte = (a * x0 + b * y0 + c) / math.sqrt(a**2 + b**2)
+        return cte
 
     def pose_cb(self, msg):
         # rospy.logdebug('pose_cb')
