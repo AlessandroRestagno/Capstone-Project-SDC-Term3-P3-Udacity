@@ -7,6 +7,7 @@ from geometry_msgs.msg import TwistStamped
 from styx_msgs.msg import Lane, Waypoint
 from scipy.spatial import KDTree
 from std_msgs.msg import Int32
+from std_msgs.msg import Float32
 
 import math
 import datetime
@@ -56,7 +57,7 @@ class WaypointUpdater(object):
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
         # cte publisher
-        self.cte_pub = rospy.Publisher('/cte', Int32, queue_size=1)
+        self.cte_pub = rospy.Publisher('/cte', Float32, queue_size=1)
 
         self.loop()
 
@@ -109,6 +110,7 @@ class WaypointUpdater(object):
 
         cte = self.cross_track_error(closest_idx)
         self.cte_pub.publish(cte)
+        rospy.loginfo('WPU cte=%f', cte)
 
     def generate_lane(self, closest_idx):
         lane = Lane()
@@ -180,6 +182,9 @@ class WaypointUpdater(object):
         return temp
 
     def cross_track_error(self, closest_idx):
+        if (closest_idx > len(self.waypoints_2d)-2):
+            return 0
+        
         x0 = self.pose.pose.position.x
         y0 = self.pose.pose.position.y
 
