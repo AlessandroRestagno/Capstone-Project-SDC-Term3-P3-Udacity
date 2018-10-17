@@ -12,13 +12,13 @@ class Controller(object):
     def __init__(self, vehicle_mass, fuel_capacity, brake_deadband, decel_limit, accel_limit, wheel_radius, wheel_base, steer_ratio, max_lat_accel, max_steer_angle, max_throttle_percent):
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
 
-        #We didn't use a throttle PID controller
-        #kp = 0.5
-        #ki = 0.0001
-        #kd = 0.15
-        #mn = decel_limit #minial throttle value
-        #mx = max_throttle_percent #maximum throttle value
-        #self.throttle_controller = PID(kp, ki, kd, mn, mx)
+        #Steering PID controller
+        kp = 0.95
+        ki = 0.
+        kd = 0.05
+        mn = -max_steer_angle #minial steer angle
+        mx = max_steer_angle #maximum steer angle
+        self.steering_controller = PID(kp, ki, kd, mn, mx)
 
         tau = 0.05  #1 / (2pi*tau) = cutoff frequency
         ts = 0.02 # sample time
@@ -31,16 +31,18 @@ class Controller(object):
         self.accel_limit = accel_limit
         self.wheel_radius = wheel_radius
 
-        #self.last_time = rospy.get_time()
+        self.last_time = rospy.get_time()
         self.max_vel = 0.001
         self.last_throttle = 0.
         self.last_brake = 100.
         self.last_steering = 0.
+        #self.PID_steering = 0.
 
-    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent):
+    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent, current_cte):
         # return throttle, brake, steer
 
         if not dbw_enabled:
+            self.steering_controller.reset()
             return 0., 0., 0.
         
         #rospy.loginfo('self.max_vel: %f', self.max_vel)
@@ -51,14 +53,26 @@ class Controller(object):
         filt_current_vel = self.vel_lpf.filt(current_vel)
         #rospy.loginfo('angular_vel: %f', angular_vel)
         #steering = self.yaw_controller.get_steering(twist.twist.linear.x, twist.twist.angular.z, velocity.twist.linear.x)
-        steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
+        yaw_steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
+        #steering = steering + current_cte
+        rospy.loginfo('yaw_steering : %.3f', yaw_steering)
+        
+        current_time = rospy.get_time()
+        sample_time = current_time - self.last_time
+        self.last_time = current_time
+        rospy.loginfo('Sample time: %.3f', sample_time)
+        PID_steering = self.steering_controller.step(current_cte, sample_time)
+        rospy.loginfo('PID steering : %.3f', PID_steering)
+        steering = yaw_steering + PID_steering
+        rospy.loginfo('CTE : %.3f', current_cte)
+        #rospy.loginfo('PID steering: %f', steering)
         
         #smoothing steering control
 
-        if (steering - self.last_steering) > 0.1:
-            steering = self.last_steering + 0.1
-        elif (steering - self.last_steering) < -0.1:
-            steering = self.last_steering - 0.1
+        if (steering - self.last_steering) > 0.2:
+            steering = self.last_steering + 0.2
+        elif (steering - self.last_steering) < -0.2:
+            steering = self.last_steering - 0.2
         
         self.last_steering = steering
 
@@ -66,10 +80,6 @@ class Controller(object):
 
         vel_error = linear_vel - filt_current_vel
         
-        #current_time = rospy.get_time()
-        #sample_time = current_time - self.last_time
-        #self.last_time = current_time
-
         #acceleration = self.throttle_controller.step(vel_error, sample_time)
         
         # smooth acceleration algorithm based on "An Intelligent Vehicle Based on an Improved PID Speed Control Algorithm for Driving Trend Graphs" paper
