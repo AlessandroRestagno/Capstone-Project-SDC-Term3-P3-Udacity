@@ -188,7 +188,7 @@ class WaypointUpdater(object):
         x0 = self.pose.pose.position.x
         y0 = self.pose.pose.position.y
 
-        closest_coord_1 = self.waypoints_2d[closest_idx]
+        closest_coord_1 = self.waypoints_2d[closest_idx - 1]
         closest_coord_2 = self.waypoints_2d[closest_idx + 1]
 
         point_1 = np.array(closest_coord_1)
