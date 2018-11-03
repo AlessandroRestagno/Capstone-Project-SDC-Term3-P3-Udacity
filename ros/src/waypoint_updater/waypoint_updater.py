@@ -110,7 +110,7 @@ class WaypointUpdater(object):
 
         cte = self.cross_track_error(closest_idx)
         self.cte_pub.publish(cte)
-        rospy.loginfo('WPU cte=%f', cte)
+        #rospy.loginfo('WPU cte=%f', cte)
 
     def generate_lane(self, closest_idx):
         lane = Lane()
@@ -201,7 +201,7 @@ class WaypointUpdater(object):
 
         # distance between the actual position and the line that passes through the next two waypoints
         # cte = abs(a * x0 + b * y0 + c) / math.sqrt(a**2 + b**2)
-        cte = (a * x0 + b * y0 + c) / math.sqrt(a**2 + b**2) + 1.5
+        cte = (a * x0 + b * y0 + c) / math.sqrt(a**2 + b**2) 
         return cte
 
     def pose_cb(self, msg):

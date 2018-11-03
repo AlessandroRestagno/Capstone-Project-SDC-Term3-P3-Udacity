@@ -39,6 +39,7 @@ class DBWNode(object):
         steer_ratio = rospy.get_param('~steer_ratio', 14.8)
         max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
         max_steer_angle = rospy.get_param('~max_steer_angle', 25.)
+	rospy.loginfo('Max steer angle %f', max_steer_angle)
         max_throttle_percent = rospy.get_param('~max_throttle_percent', 0.5)
 
 
@@ -71,6 +72,7 @@ class DBWNode(object):
 
         self.dbw_enabled = None
         self.current_vel = None
+	self.current_angular_vel = None
         self.linear_vel = None
         self.angular_vel = None
         self.current_cte = None
@@ -84,7 +86,8 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # get predicted throttle, brake, and steering using `twist_controller`
             if not None in (self.linear_vel, self.angular_vel, self.current_vel):
-                self.throttle, self.brake, self.steering = self.controller.control(self.linear_vel, self.angular_vel, self.current_vel, self.dbw_enabled, max_throttle_percent, self.current_cte)
+                self.throttle, self.brake, self.steering = self.controller.control(self.linear_vel, self.angular_vel, self.current_vel, self.dbw_enabled, max_throttle_percent, self.current_cte,
+			self.current_angular_vel)
             if self.dbw_enabled:
                 self.publish(self.throttle, self.brake, self.steering)
             rate.sleep()
@@ -98,6 +101,7 @@ class DBWNode(object):
 
     def velocity_cb(self, msg):
         self.current_vel = msg.twist.linear.x
+	self.current_angular_vel = msg.twist.angular.z
     
     def cte_cb(self, msg):
         self.current_cte = msg.data

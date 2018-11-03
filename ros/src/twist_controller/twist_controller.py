@@ -13,9 +13,9 @@ class Controller(object):
         self.yaw_controller = YawController(wheel_base, steer_ratio, 0.1, max_lat_accel, max_steer_angle)
 
         #Steering PID controller
-        kp = 0.95
-        ki = 0.
-        kd = 0.05
+        kp = 1.2
+        ki = 0.0
+        kd = 1.4
         mn = -max_steer_angle #minial steer angle
         mx = max_steer_angle #maximum steer angle
         self.steering_controller = PID(kp, ki, kd, mn, mx)
@@ -38,7 +38,7 @@ class Controller(object):
         self.last_steering = 0.
         #self.PID_steering = 0.
 
-    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent, current_cte):
+    def control(self, linear_vel, angular_vel, current_vel, dbw_enabled, max_throttle_percent, current_cte, current_angular_vel):
         # return throttle, brake, steer
 
         if not dbw_enabled:
@@ -53,18 +53,23 @@ class Controller(object):
         filt_current_vel = self.vel_lpf.filt(current_vel)
         #rospy.loginfo('angular_vel: %f', angular_vel)
         #steering = self.yaw_controller.get_steering(twist.twist.linear.x, twist.twist.angular.z, velocity.twist.linear.x)
-        yaw_steering = self.yaw_controller.get_steering(linear_vel, angular_vel, filt_current_vel)
         #steering = steering + current_cte
-        rospy.loginfo('yaw_steering : %.3f', yaw_steering)
+        #rospy.loginfo('yaw_steering : %.3f', yaw_steering)
         
         current_time = rospy.get_time()
         sample_time = current_time - self.last_time
         self.last_time = current_time
-        rospy.loginfo('Sample time: %.3f', sample_time)
-        PID_steering = self.steering_controller.step(current_cte, sample_time)
-        rospy.loginfo('PID steering : %.3f', PID_steering)
-        steering = yaw_steering + PID_steering
-        rospy.loginfo('CTE : %.3f', current_cte)
+        #rospy.loginfo('Sample time: %.3f', sample_time)
+      	angular_vel_delta = angular_vel - current_angular_vel
+        #rospy.loginfo('Desired angular velocity: %.3f', angular_vel)
+        #rospy.loginfo('Angular velocity delta: %.3f', angular_vel_delta)
+        PID_angular_vel = self.steering_controller.step(angular_vel_delta, sample_time)
+	total_angular_vel = PID_angular_vel + angular_vel
+	#rospy.loginfo('PID angular velocity: %.3f', total_angular_vel)
+        #steering = yaw_steering + PID_steering
+        #rospy.loginfo('PID steering : %.3f', PID_steering)
+        steering = self.yaw_controller.get_steering(linear_vel, total_angular_vel, filt_current_vel)
+        #rospy.loginfo('CTE : %.3f', current_cte)
         #rospy.loginfo('PID steering: %f', steering)
         
         #smoothing steering control
