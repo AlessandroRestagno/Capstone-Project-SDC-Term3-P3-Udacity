@@ -69,7 +69,7 @@ It's subscribed to the `current_vel`,`twist_cmd` and `dbw_enabled` topics and it
 
 ### Steering
 
-Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_controller.py)).
+Predictive Steering is implemented using the provided `YawController` class ([yaw_controller.py](/ros/src/twist_controller/yaw_controller.py)). We used a `LowPassFilter` class ([lowpass.py](/ros/src/twist_controller/lowpass.py)) to filter the current velocity. In addition to that, we used a PID steering controller to further improve the data about the angular velocity.
 
 ### Throttle
 Throttle is controlled by a speed control algorithm ([An Intelligent Vehicle Based on an Improved PID Speed Control Algorithm for
